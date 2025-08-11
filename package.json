@@ -1,0 +1,17 @@
+{
+  "name": "cadence",
+  "version": "1.0.0",
+  "description": "A gonic client",
+  "scripts": {
+    "lint": "turbo run lint"
+  },
+  "keywords": [],
+  "author": "ony@ony.world",
+  "license": "ISC",
+  "packageManager": "pnpm@10.14.0",
+  "devDependencies": {
+    "eslint": "^9.32.0",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.5"
+  }
+}
