@@ -1,5 +1,6 @@
 // https://docs.expo.dev/guides/using-eslint/
 
+// @ts-nocheck because of expo config import
 // noinspection JSFileReferences
 import expoConfig from "eslint-config-expo/flat.js";
 import base from "@cadence/eslint-config";
