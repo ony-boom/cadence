@@ -1,0 +1,20 @@
+{
+  "name": "@cadence/lib",
+  "version": "1.0.0",
+  "license": "ISC",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "exports": {
+    "./http": "./src/http.ts"
+  },
+  "packageManager": "pnpm@10.14.0",
+  "devDependencies": {
+    "@cadence/eslint-config": "workspace:*",
+    "@cadence/ts-config": "workspace:*",
+    "typescript-eslint": "^8.39.0"
+  },
+  "dependencies": {
+    "neverthrow": "^8.2.0"
+  }
+}

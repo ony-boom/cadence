@@ -9,9 +9,6 @@ import tsEslint from "typescript-eslint";
 export default tsEslint.config([
   expoConfig,
   {
-    ignores: ["dist/*"],
-  },
-  {
     extends: [base],
   },
 ]);

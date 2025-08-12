@@ -1,0 +1,7 @@
+{
+  "name": "@cadence/ts-config",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cadence shared TypeScript Config",
+  "packageManager": "pnpm@10.14.0"
+}
