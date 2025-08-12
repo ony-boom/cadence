@@ -7,18 +7,17 @@
     "lint": "eslint ."
   },
   "exports": {
-    ".": "./index.ts"
+    ".": "./src/api-client.ts",
+    "./auth": "./src/auth/auth.ts"
   },
   "packageManager": "pnpm@10.14.0",
   "devDependencies": {
-    "@cadence/lib": "workspace:*",
     "@cadence/eslint-config": "workspace:*",
     "@cadence/ts-config": "workspace:*",
     "@types/spark-md5": "^3.0.5",
     "typescript-eslint": "^8.39.0"
   },
   "dependencies": {
-    "neverthrow": "^8.2.0",
     "spark-md5": "^3.0.2"
   }
 }

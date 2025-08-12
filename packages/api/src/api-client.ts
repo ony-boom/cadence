@@ -1,34 +1,26 @@
-import { buildAuthParams } from "./auth";
-import { safeFetch } from "@cadence/lib/http";
-import { ApiClientOptions, ApiContract } from "./api-client.type";
+import { AuthStrategy } from "./auth/strategy/auth-strategy";
 
-export class ApiClient implements ApiContract {
+interface ApiClientOptions {
+  url: string;
+  authStrategy: AuthStrategy;
+}
+
+export class ApiClient {
   private readonly baseUrl: string;
-  private readonly username: string;
-  private readonly password: string;
+  private readonly authStrategy: AuthStrategy;
 
   constructor(opts: ApiClientOptions) {
     this.baseUrl = opts.url.replace(/\/$/, "");
-    this.username = opts.user;
-    this.password = opts.password;
+    this.authStrategy = opts.authStrategy;
   }
 
-  private getApiUrl(path: string) {
-    const params = new URLSearchParams(
-      buildAuthParams(this.username, this.password),
-    ).toString();
-    return `${this.baseUrl}/rest/${path}?${params}`;
-  }
+  private getApiUrl(path: string): string {
+    const authParams = this.authStrategy.buildAuthParams();
+    const params = new URLSearchParams(authParams).toString();
 
-  ping = () => {
-    const r = safeFetch(this.getApiUrl("ping.view"));
-    r.match(
-      (data) => {
-        console.log(data);
-      },
-      (err) => {
-        console.log(err);
-      },
-    );
-  };
+    const url = new URL(`rest/${path}`, this.baseUrl);
+    url.search = params;
+
+    return url.toString();
+  }
 }

@@ -1,7 +1,6 @@
 import js from "@eslint/js";
 import prettierPlugin from "eslint-plugin-prettier";
 import prettierConfig from "eslint-config-prettier";
-import neverThrowPlugin from "eslint-plugin-neverthrow";
 import tsEslint from "typescript-eslint";
 import { globalIgnores } from "eslint/config";
 
@@ -11,7 +10,6 @@ export default tsEslint.config([
     files: ["**/*.{ts,tsx}"],
     plugins: {
       prettier: prettierPlugin,
-      neverthrow: neverThrowPlugin,
     },
     extends: [js.configs.recommended],
     rules: {
