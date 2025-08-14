@@ -1,0 +1,29 @@
+import { useAuthContext } from "../../../../packages/lib/src/context/auth-context/auth-context.ts";
+
+export function GlobalLayout() {
+  const { loading, client, login } = useAuthContext();
+
+  if (!client && !loading) {
+    return (
+      <p>
+        You are not authenticated.
+        <button
+          onClick={() => {
+            login("http://localhost:4747", "token", "ony", "ony@gonic20370256");
+            // window.location.reload();
+          }}
+        >
+          Login
+        </button>
+      </p>
+    );
+  }
+
+  client?.ping();
+
+  return (
+    <div>
+      <h1>Hello World</h1>
+    </div>
+  );
+}

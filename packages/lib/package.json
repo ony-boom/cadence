@@ -1,0 +1,21 @@
+{
+  "name": "@cadence/lib",
+  "version": "1.0.0",
+  "description": "API layer for connecting to a subsonic server",
+  "license": "ISC",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "packageManager": "pnpm@10.14.0",
+  "exports": {
+    "./context": "./src/context/index.ts"
+  },
+  "dependencies": {
+    "@cadence/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@cadence/eslint-config": "workspace:*",
+    "@cadence/ts-config": "workspace:*",
+    "typescript-eslint": "^8.39.0"
+  }
+}
