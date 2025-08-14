@@ -8,7 +8,8 @@
   },
   "packageManager": "pnpm@10.14.0",
   "exports": {
-    "./context": "./src/context/index.ts"
+    "./context": "./src/context/index.ts",
+    "./hooks": "./src/hooks/index.ts"
   },
   "dependencies": {
     "@cadence/api": "workspace:*"

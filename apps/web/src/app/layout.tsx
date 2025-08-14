@@ -1,4 +1,4 @@
-import { useAuthContext } from "../../../../packages/lib/src/context/auth-context/auth-context.ts";
+import { useAuthContext } from "@cadence/lib/hooks";
 
 export function GlobalLayout() {
   const { loading, client, login } = useAuthContext();

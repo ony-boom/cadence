@@ -1,7 +1,7 @@
 import type { ApiClient } from "@cadence/api";
-import { createContext, useContext } from "react";
+import { createContext } from "react";
 
-interface AuthContextValue {
+export interface AuthContextValue {
   client: ApiClient | null;
   loading: boolean;
   login: (
@@ -14,10 +14,3 @@ interface AuthContextValue {
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
-export const useAuthContext = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
-  }
-  return context as AuthContextValue;
-};

@@ -1,4 +1,4 @@
-import { AuthStrategy } from "./auth/strategy/auth-strategy";
+import { AuthStrategy } from "./auth/strategy";
 import type { SessionManager } from "./auth/session-manager";
 
 export interface ApiClientOptions {
