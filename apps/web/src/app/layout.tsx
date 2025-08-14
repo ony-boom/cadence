@@ -1,4 +1,5 @@
 import { useAuthContext } from "@cadence/lib/hooks";
+import { TokenAuthStrategy } from "@cadence/api/auth/strategy";
 
 export function GlobalLayout() {
   const { sessionActive, client, login } = useAuthContext();
@@ -9,7 +10,11 @@ export function GlobalLayout() {
         You are not authenticated.
         <button
           onClick={() => {
-            login("http://localhost:4747", "token", "ony", "ony@gonic20370256");
+            login({
+              url: "http://localhost:4747",
+              user: "ony",
+              authStrategy: new TokenAuthStrategy("ony", "ony@gonic20370256"),
+            });
             // window.location.reload();
           }}
         >

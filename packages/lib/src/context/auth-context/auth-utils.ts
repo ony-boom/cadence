@@ -1,6 +1,7 @@
 import { ApiClient } from "@cadence/api";
-import { restoreAuthStrategy, createAuthStrategy } from "./auth-strategy";
+import { restoreAuthStrategy } from "./restore-auth-strategy";
 import type { SessionManager, StrategyType } from "@cadence/api/auth/session";
+import { AuthStrategy } from "@cadence/api/auth/strategy";
 
 export function createApiFromSession(
   sessionManager: SessionManager,
@@ -15,19 +16,23 @@ export function createApiFromSession(
   });
 }
 
-export function performLogin(
-  sessionManager: SessionManager,
-  url: string,
-  type: StrategyType,
-  user: string,
-  secret: string,
-): ApiClient | null {
-  const strategy = createAuthStrategy(type, user, secret, sessionManager);
+export interface LoginParamsWithSession {
+  sessionManager: SessionManager;
+  url: string;
+  user: string;
+  authStrategy: AuthStrategy;
+}
 
+export function performLogin({
+  sessionManager,
+  url,
+  user,
+  authStrategy,
+}: LoginParamsWithSession): ApiClient | null {
   sessionManager.save({
-    type,
+    type: authStrategy.type as StrategyType,
     user,
-    data: { ...strategy.buildAuthParams(), baseUrl: url },
+    data: { ...authStrategy.buildAuthParams(), baseUrl: url },
   });
 
   return createApiFromSession(sessionManager);

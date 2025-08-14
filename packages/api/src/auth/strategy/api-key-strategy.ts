@@ -1,7 +1,12 @@
 import { AuthStrategy } from "./auth-strategy";
-import type { SessionManager, SessionData } from "../session-manager";
+import type {
+  SessionManager,
+  SessionData,
+  StrategyType,
+} from "../session-manager";
 
 export class ApiKeyAuthStrategy extends AuthStrategy {
+  readonly type: StrategyType = "apikey";
   constructor(
     private readonly user: string,
     private readonly apiKey: string,
@@ -11,7 +16,7 @@ export class ApiKeyAuthStrategy extends AuthStrategy {
   }
 
   static fromSession(session: SessionData, sessionManager?: SessionManager) {
-    return this.restore("apikey", session, sessionManager, (data) => {
+    return this.restore("apikey", session, (data) => {
       const { u, apiKey } = data;
       if (!u || !apiKey) {
         throw new Error("Invalid API key session data");

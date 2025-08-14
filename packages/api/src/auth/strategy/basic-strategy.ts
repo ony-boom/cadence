@@ -1,7 +1,12 @@
 import { AuthStrategy } from "./auth-strategy";
-import type { SessionManager, SessionData } from "../session-manager";
+import type {
+  SessionManager,
+  SessionData,
+  StrategyType,
+} from "../session-manager";
 
 export class BasicAuthStrategy extends AuthStrategy {
+  type: StrategyType = "basic";
   constructor(
     private readonly user: string,
     private readonly password: string,
@@ -11,13 +16,17 @@ export class BasicAuthStrategy extends AuthStrategy {
   }
 
   static fromSession(session: SessionData, sessionManager?: SessionManager) {
-    return this.restore("basic", session, sessionManager, (data) => {
-      const { u, p } = data;
-      if (!u || !p) {
-        throw new Error("Invalid basic session data");
-      }
-      return new BasicAuthStrategy(u, p, sessionManager);
-    });
+    return this.restore(
+      "basic",
+      session,
+      (data) => {
+        const { u, p } = data;
+        if (!u || !p) {
+          throw new Error("Invalid basic session data");
+        }
+        return new BasicAuthStrategy(u, p, sessionManager);
+      },
+    );
   }
 
   buildAuthParams() {

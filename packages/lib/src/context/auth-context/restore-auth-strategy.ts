@@ -40,10 +40,3 @@ export const restoreAuthStrategy = (
   session: SessionData,
   sessionManager?: SessionManager,
 ) => getStrategy(session.type).fromSession(session, sessionManager);
-
-export const createAuthStrategy = (
-  type: StrategyType,
-  user: string,
-  secret: string,
-  sessionManager?: SessionManager,
-) => new (getStrategy(type))(user, secret, sessionManager);

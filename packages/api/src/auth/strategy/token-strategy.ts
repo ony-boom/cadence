@@ -1,8 +1,13 @@
 import SparkMD5 from "spark-md5";
 import { AuthStrategy } from "./auth-strategy";
-import type { SessionManager, SessionData } from "../session-manager";
+import type {
+  SessionManager,
+  SessionData,
+  StrategyType,
+} from "../session-manager";
 
 export class TokenAuthStrategy extends AuthStrategy {
+  type: StrategyType = "token";
   private readonly password?: string;
   private readonly precomputed?: { token: string; salt: string };
 
@@ -29,7 +34,7 @@ export class TokenAuthStrategy extends AuthStrategy {
   }
 
   static fromSession(session: SessionData, sessionManager?: SessionManager) {
-    return this.restore("token", session, sessionManager, (data) => {
+    return this.restore("token", session, (data) => {
       const { u, t, s } = data;
       if (!u || !t || !s) {
         throw new Error("Invalid token session data");

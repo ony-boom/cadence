@@ -1,6 +1,6 @@
-import { AuthContext } from "./auth-context";
+import { AuthContext, LoginParams } from "./auth-context";
 import type { ApiClient } from "@cadence/api";
-import type { SessionManager, StrategyType } from "@cadence/api/auth/session";
+import type { SessionManager } from "@cadence/api/auth/session";
 import { createApiFromSession, performLogin } from "./auth-utils";
 import { useEffect, useState, type ReactNode, useCallback } from "react";
 
@@ -14,9 +14,16 @@ export function AuthProvider({
   const [client, setClient] = useState<ApiClient | null>(null);
 
   const login = useCallback(
-    (url: string, type: StrategyType, user: string, secret: string) => {
+    ({ authStrategy, url, user }: LoginParams) => {
       if (!sessionManager) return;
-      setClient(performLogin(sessionManager, url, type, user, secret));
+      setClient(
+        performLogin({
+          authStrategy,
+          sessionManager,
+          user,
+          url,
+        }),
+      );
     },
     [sessionManager],
   );

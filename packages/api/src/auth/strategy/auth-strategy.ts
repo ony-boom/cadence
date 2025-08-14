@@ -1,7 +1,12 @@
 import { CLIENT_NAME, SUBSONIC_API_VERSION } from "../../constant";
-import type { SessionManager, SessionData } from "../session-manager";
+import type {
+  SessionManager,
+  SessionData,
+  StrategyType,
+} from "../session-manager";
 
 export abstract class AuthStrategy {
+  abstract readonly type: StrategyType;
   protected baseParams = {
     c: CLIENT_NAME,
     v: SUBSONIC_API_VERSION,
@@ -18,10 +23,6 @@ export abstract class AuthStrategy {
 
   protected saveSession(session: SessionData) {
     this.sessionManager?.save(session);
-  }
-
-  protected clearSession() {
-    this.sessionManager?.clear();
   }
 
   protected withSession(
@@ -44,7 +45,6 @@ export abstract class AuthStrategy {
     this: new (...args: any[]) => T,
     expectedType: string,
     session: SessionData,
-    sessionManager: SessionManager | undefined,
     factory: (data: Record<string, string>) => T,
   ): T {
     if (session.type !== expectedType) {
