@@ -1,9 +1,9 @@
 import { useAuthContext } from "@cadence/lib/hooks";
 
 export function GlobalLayout() {
-  const { loading, client, login } = useAuthContext();
+  const { sessionActive, client, login } = useAuthContext();
 
-  if (!client && !loading) {
+  if (!client || !sessionActive) {
     return (
       <p>
         You are not authenticated.

@@ -1,38 +1,42 @@
 import { AuthContext } from "./auth-context";
 import type { ApiClient } from "@cadence/api";
-import { useSession } from "../../hooks/use-session";
-import type { StrategyType } from "@cadence/api/auth/session";
+import type { SessionManager, StrategyType } from "@cadence/api/auth/session";
 import { createApiFromSession, performLogin } from "./auth-utils";
 import { useEffect, useState, type ReactNode, useCallback } from "react";
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({
+  children,
+  sessionManager,
+}: {
+  children: ReactNode;
+  sessionManager?: SessionManager;
+}) {
   const [client, setClient] = useState<ApiClient | null>(null);
-  const { session, loading: loadingSession } = useSession();
 
   const login = useCallback(
     (url: string, type: StrategyType, user: string, secret: string) => {
-      if (!session) return;
-      setClient(performLogin(session, url, type, user, secret));
+      if (!sessionManager) return;
+      setClient(performLogin(sessionManager, url, type, user, secret));
     },
-    [session],
+    [sessionManager],
   );
 
   const logout = useCallback(() => {
-    session?.clear();
+    sessionManager?.clear();
     setClient(null);
-  }, [session]);
+  }, [sessionManager]);
 
   useEffect(() => {
-    if (session) setClient(createApiFromSession(session));
-  }, [session]);
+    if (sessionManager) setClient(createApiFromSession(sessionManager));
+  }, [sessionManager]);
 
   return (
     <AuthContext.Provider
       value={{
         client,
-        loading: loadingSession || !session,
         login,
         logout,
+        sessionActive: !!sessionManager,
       }}
     >
       {children}

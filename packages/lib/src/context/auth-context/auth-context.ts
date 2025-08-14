@@ -3,7 +3,7 @@ import { createContext } from "react";
 
 export interface AuthContextValue {
   client: ApiClient | null;
-  loading: boolean;
+  sessionActive: boolean;
   login: (
     url: string,
     type: "token" | "basic" | "apikey",

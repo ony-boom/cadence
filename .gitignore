@@ -58,3 +58,6 @@ dist-ssr
 app-example
 
 .turbo
+
+# env files
+.env

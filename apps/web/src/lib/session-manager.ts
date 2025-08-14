@@ -6,23 +6,20 @@ type ManagerOptions = Partial<{
   storeName: string;
   metaStoreName: string;
   keyId: string;
-  passphrase: string;
   kdfIterations: number;
   kdfSaltBytes: number;
 }>;
 
 type EncryptedPayload = { iv: string; ct: string };
 const SINGLETON_KEY = "singleton";
-type InternalOptions = Required<Omit<ManagerOptions, "passphrase">> &
-  Pick<ManagerOptions, "passphrase">;
 
 export class IndexDBSessionManager implements SessionManager {
   private cache: SessionData | null = null;
   private cryptoKey: CryptoKey | null = null;
   private readonly dbPromise: Promise<IDBDatabase>;
-  private readonly opts: InternalOptions;
+  private readonly opts: Required<ManagerOptions> & { passphrase: string };
 
-  private constructor(opts: InternalOptions) {
+  private constructor(opts: typeof this.opts) {
     this.opts = opts;
     this.dbPromise = this.openDb();
   }
@@ -35,107 +32,73 @@ export class IndexDBSessionManager implements SessionManager {
       keyId: "kdf_salt",
       kdfIterations: 100_000,
       kdfSaltBytes: 16,
+      passphrase: import.meta.env.VITE_SESSION_PASSPHRASE,
       ...opts,
     });
-    if (mgr.opts.passphrase) await mgr.ensureCryptoKey();
+
+    if (!mgr.opts.passphrase)
+      throw new Error("VITE_SESSION_PASSPHRASE is required");
+
+    await mgr.ensureCryptoKey();
     mgr.cache = (await mgr.readSession()) ?? null;
     return mgr;
   }
 
-  save(session: SessionData) {
+  async save(session: SessionData) {
     this.cache = session;
-    void this.persistSession(session).catch(() => {});
+    try {
+      const key = await this.ensureCryptoKey();
+      const payload = await this.encryptJson(JSON.stringify(session), key);
+      await this.putRecord(this.opts.storeName, { id: SINGLETON_KEY, payload });
+    } catch (err) {
+      console.error("Failed to save session:", err);
+    }
   }
 
   load() {
     return this.cache;
   }
 
-  clear() {
+  async clear() {
     this.cache = null;
-    void this.deleteSession().catch(() => {});
+    try {
+      await this.deleteRecord(this.opts.storeName, SINGLETON_KEY);
+    } catch (err) {
+      console.error("Failed to clear session:", err);
+    }
   }
 
-  // --- IndexedDB helpers ---
-  private openDb() {
-    return new Promise<IDBDatabase>((resolve, reject) => {
+  private openDb(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
       const req = indexedDB.open(this.opts.dbName, 1);
       req.onupgradeneeded = () => {
         const db = req.result;
-        for (const name of [this.opts.storeName, this.opts.metaStoreName]) {
+        [this.opts.storeName, this.opts.metaStoreName].forEach((name) => {
           if (!db.objectStoreNames.contains(name))
             db.createObjectStore(name, { keyPath: "id" });
-        }
+        });
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
   }
 
-  private async tx(storeName: string, mode: IDBTransactionMode) {
-    const db = await this.dbPromise;
-    return db.transaction(storeName, mode).objectStore(storeName);
-  }
-
-  private idbOp<T>(
-    req: IDBRequest<T>,
-    resolve: (v: T) => void,
-    reject: (e: DOMException | null) => void,
-  ) {
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  }
-
-  // --- Session I/O ---
   private async readSession(): Promise<SessionData | null> {
-    const store = await this.tx(this.opts.storeName, "readonly");
-    const record = await new Promise<{
-      payload?: EncryptedPayload;
-      data?: SessionData;
-    } | null>((res, rej) => this.idbOp(store.get(SINGLETON_KEY), res, rej));
-    if (!record) return null;
-
-    try {
-      if (this.opts.passphrase && record.payload) {
-        const json = await this.decryptJson(
-          record.payload,
-          await this.ensureCryptoKey(),
-        );
-        return JSON.parse(json) as SessionData;
-      }
-      return record.data ?? null;
-    } catch {
-      return null;
-    }
-  }
-
-  private async persistSession(session: SessionData) {
-    const store = await this.tx(this.opts.storeName, "readwrite");
-    const value = this.opts.passphrase
-      ? {
-          id: SINGLETON_KEY,
-          payload: await this.encryptJson(
-            JSON.stringify(session),
-            await this.ensureCryptoKey(),
-          ),
-        }
-      : { id: SINGLETON_KEY, data: session };
-    await new Promise<IDBValidKey>((res, rej) =>
-      this.idbOp(store.put(value), res, rej),
+    const record = await this.getRecord<{ payload: EncryptedPayload }>(
+      this.opts.storeName,
+      SINGLETON_KEY,
     );
-  }
+    if (!record?.payload) return null;
 
-  private async deleteSession() {
-    const store = await this.tx(this.opts.storeName, "readwrite");
-    await new Promise<void>((res, rej) =>
-      this.idbOp(store.delete(SINGLETON_KEY), res, rej),
+    const json = await this.decryptJson(
+      record.payload,
+      await this.ensureCryptoKey(),
     );
+    return JSON.parse(json) as SessionData;
   }
 
-  // --- Crypto ---
   private async ensureCryptoKey(): Promise<CryptoKey> {
     if (this.cryptoKey) return this.cryptoKey;
-    if (!this.opts.passphrase) throw new Error("Passphrase not provided");
 
     const salt = await this.getOrCreateSalt();
     const keyMaterial = await crypto.subtle.importKey(
@@ -162,24 +125,18 @@ export class IndexDBSessionManager implements SessionManager {
   }
 
   private async getOrCreateSalt(): Promise<ArrayBuffer> {
-    const store = await this.tx(this.opts.metaStoreName, "readwrite");
-    const meta = await new Promise<{ salt: string } | null>((res, rej) =>
-      this.idbOp(store.get(this.opts.keyId), res, rej),
+    const meta = await this.getRecord<{ salt: string }>(
+      this.opts.metaStoreName,
+      this.opts.keyId,
     );
-    if (!meta) {
-      const salt = crypto.getRandomValues(
-        new Uint8Array(this.opts.kdfSaltBytes),
-      );
-      await new Promise<IDBValidKey>((res, rej) =>
-        this.idbOp(
-          store.put({ id: this.opts.keyId, salt: bufferToB64(salt.buffer) }),
-          res,
-          rej,
-        ),
-      );
-      return salt.buffer;
-    }
-    return b64ToBuffer(meta.salt);
+    if (meta?.salt) return b64ToBuffer(meta.salt);
+
+    const salt = crypto.getRandomValues(new Uint8Array(this.opts.kdfSaltBytes));
+    await this.putRecord(this.opts.metaStoreName, {
+      id: this.opts.keyId,
+      salt: bufferToB64(salt.buffer),
+    });
+    return salt.buffer;
   }
 
   private async encryptJson(
@@ -202,5 +159,57 @@ export class IndexDBSessionManager implements SessionManager {
       b64ToBuffer(payload.ct),
     );
     return new TextDecoder().decode(pt);
+  }
+
+  private async getRecord<T>(
+    storeName: string,
+    key: IDBValidKey,
+  ): Promise<T | null> {
+    const db = await this.dbPromise;
+    const tx = db.transaction(storeName, "readonly");
+    const store = tx.objectStore(storeName);
+
+    const result = await new Promise<T | null>((res, rej) => {
+      const req = store.get(key);
+      req.onsuccess = () => res((req.result as T) ?? null);
+      req.onerror = () => rej(req.error);
+    });
+
+    await this.waitTx(tx);
+    return result;
+  }
+
+  private async putRecord(storeName: string, value: unknown): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction(storeName, "readwrite");
+    const store = tx.objectStore(storeName);
+
+    await new Promise<void>((res, rej) => {
+      const req = store.put(value);
+      req.onsuccess = () => res();
+      req.onerror = () =>
+        rej(req.error ?? new DOMException("store.put failed"));
+    });
+
+    await this.waitTx(tx);
+  }
+
+  private async deleteRecord(
+    storeName: string,
+    key: IDBValidKey,
+  ): Promise<void> {
+    const db = await this.dbPromise;
+    const tx = db.transaction(storeName, "readwrite");
+    tx.objectStore(storeName).delete(key);
+    await this.waitTx(tx);
+  }
+
+  private waitTx(tx: IDBTransaction): Promise<void> {
+    return new Promise((res, rej) => {
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error ?? new DOMException("transaction error"));
+      tx.onabort = () =>
+        rej(tx.error ?? new DOMException("transaction aborted"));
+    });
   }
 }

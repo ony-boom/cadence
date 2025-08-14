@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { IndexDBSessionManager } from "../../../../apps/web/src/lib/session-manager.ts";
+import { IndexDBSessionManager } from "../lib/session-manager.ts";
 
 export function useSession() {
   const [savedSession, setSavedSession] =
