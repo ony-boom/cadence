@@ -1,21 +1,25 @@
 import { AuthStrategy } from "./auth/strategy/auth-strategy";
+import type { SessionManager } from "./auth/session-manager";
 
-interface ApiClientOptions {
+export interface ApiClientOptions {
   url: string;
   authStrategy: AuthStrategy;
+  sessionManager?: SessionManager;
 }
 
 export class ApiClient {
-  private readonly baseUrl: string;
-  private readonly authStrategy: AuthStrategy;
+  readonly baseUrl: string;
+  readonly auth: AuthStrategy;
+  readonly sessionManager?: SessionManager;
 
-  constructor(opts: ApiClientOptions) {
-    this.baseUrl = opts.url.replace(/\/$/, "");
-    this.authStrategy = opts.authStrategy;
+  constructor({ url, authStrategy, sessionManager }: ApiClientOptions) {
+    this.baseUrl = url.replace(/\/$/, "");
+    this.auth = authStrategy;
+    this.sessionManager = sessionManager;
   }
 
   private getApiUrl(path: string): string {
-    const authParams = this.authStrategy.buildAuthParams();
+    const authParams = this.auth.buildAuthParams();
     const params = new URLSearchParams(authParams).toString();
 
     const url = new URL(`rest/${path}`, this.baseUrl);
@@ -23,4 +27,13 @@ export class ApiClient {
 
     return url.toString();
   }
+
+  ping = async () => {
+    const url = this.getApiUrl("ping");
+    const response = await fetch(url);
+    const data = await response.json();
+
+    console.log(data);
+    return data;
+  };
 }

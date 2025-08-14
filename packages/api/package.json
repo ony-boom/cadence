@@ -8,7 +8,8 @@
   },
   "exports": {
     ".": "./src/api-client.ts",
-    "./auth": "./src/auth/auth.ts"
+    "./auth/strategy": "./src/auth/strategy/index.ts",
+    "./auth/session": "./src/auth/session-manager.ts"
   },
   "packageManager": "pnpm@10.14.0",
   "devDependencies": {

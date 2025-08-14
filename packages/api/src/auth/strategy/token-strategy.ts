@@ -1,15 +1,44 @@
 import SparkMD5 from "spark-md5";
 import { AuthStrategy } from "./auth-strategy";
+import type { SessionManager, SessionData } from "../session-manager";
 
 export class TokenAuthStrategy extends AuthStrategy {
+  private readonly password?: string;
+  private readonly precomputed?: { token: string; salt: string };
+
   constructor(
     private readonly user: string,
-    private readonly password: string,
+    passwordOrOpts: string | { token: string; salt: string },
+    sessionManager?: SessionManager,
   ) {
-    super();
+    super(sessionManager);
+    if (typeof passwordOrOpts === "string") {
+      this.password = passwordOrOpts;
+    } else {
+      this.precomputed = passwordOrOpts;
+    }
   }
 
-  generateSalt(length = 6): string {
+  static fromPrecomputed(
+    user: string,
+    token: string,
+    salt: string,
+    sessionManager?: SessionManager,
+  ) {
+    return new TokenAuthStrategy(user, { token, salt }, sessionManager);
+  }
+
+  static fromSession(session: SessionData, sessionManager?: SessionManager) {
+    return this.restore("token", session, sessionManager, (data) => {
+      const { u, t, s } = data;
+      if (!u || !t || !s) {
+        throw new Error("Invalid token session data");
+      }
+      return new TokenAuthStrategy(u, { token: t, salt: s }, sessionManager);
+    });
+  }
+
+  private generateSalt(length = 6): string {
     const array = new Uint8Array(length);
     crypto.getRandomValues(array);
     return Array.from(array)
@@ -18,14 +47,17 @@ export class TokenAuthStrategy extends AuthStrategy {
   }
 
   buildAuthParams() {
-    const salt = this.generateSalt();
-    const token = SparkMD5.hash(this.password + salt);
-
-    return {
-      ...this.baseParams,
-      u: this.user,
-      t: token,
-      s: salt,
-    };
+    return this.withSession("token", this.user, () => {
+      if (this.precomputed) {
+        return {
+          u: this.user,
+          t: this.precomputed.token,
+          s: this.precomputed.salt,
+        };
+      }
+      const s = this.generateSalt();
+      const t = SparkMD5.hash((this.password ?? "") + s);
+      return { u: this.user, t, s };
+    });
   }
 }
